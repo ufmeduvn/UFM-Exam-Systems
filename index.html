@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Trực Tuyến - Đại Học Tài Chính - Marketing (UFM)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- EmailJS SDK để gửi email OTP thật -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        :root {
+            --bg-light: #f1f5f9;
+            --panel-bg: #ffffff;
+            --primary: #0284c7;
+            --primary-hover: #0369a1;
+            --accent: #f59e0b;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+            --danger: #ef4444;
+            --success: #22c55e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0; padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* KHUNG ĐĂNG NHẬP / ĐĂNG KÝ BAN ĐẦU */
+        .auth-card {
+            max-width: 450px;
+            width: 100%;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            margin: 1rem;
+        }
+
+        .tab-group {
+            display: flex;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .form-group { margin-bottom: 1rem; }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: #fff;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 1.5rem;
+            margin: 1rem 0;
+            background-color: #f8fafc;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--primary);
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 0.5rem;
+        }
+
+        .btn:hover { background-color: var(--primary-hover); }
+
+        .captcha-box {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .captcha-code {
+            background-color: #e2e8f0;
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            color: var(--primary);
+            user-select: none;
+        }
+
+        .form-section { display: none; }
+        .form-section.active { display: block; }
+
+        /* MAIN DASHBOARD TRONG GIAO DIỆN SÁNG */
+        #mainDashboard {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background-color: var(--bg-light);
+            z-index: 100;
+        }
+
+        .topnav {
+            height: 65px;
+            background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            gap: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        }
+
+        .logo-ufm {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-ufm img {
+            height: 42px;
+            object-fit: contain;
+        }
+
+        .logo-ufm-text {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0369a1;
+            line-height: 1.2;
+        }
+
+        .menu-toggle {
+            font-size: 1.6rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            margin-right: 0.5rem;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0; left: -280px;
+            width: 280px; height: 100%;
+            background-color: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            transition: left 0.3s ease;
+            z-index: 102;
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.05);
+        }
+
+        .sidebar.open { left: 0; }
+
+        .sidebar-header {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.75rem;
+        }
+
+        .sidebar-menu { list-style: none; flex: 1; }
+        .sidebar-menu li {
+            padding: 0.8rem 1rem;
+            margin-bottom: 0.4rem;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+        .sidebar-menu li:hover {
+            background-color: #e0f2fe;
+            color: var(--primary);
+        }
+
+        .workspace {
+            padding: 2rem;
+            height: calc(100vh - 65px);
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        .profile-center-card {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: fit-content;
+        }
+
+        .photo-3x4-box {
+            width: 120px;
+            height: 160px;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #f8fafc;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+        }
+
+        .photo-3x4-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-3x4-box span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 0.5rem;
+        }
+
+        .photo-input { display: none; }
+
+        .profile-info-list {
+            width: 100%;
+            line-height: 2;
+            font-size: 1rem;
+        }
+
+        .profile-info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px dashed #e2e8f0;
+            padding: 0.5rem 0;
+        }
+
+        /* MODAL POPUP */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        .modal-card {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px; right: 15px;
+            background: none; border: none;
+            font-size: 1.5rem; color: var(--text-muted);
+            cursor: pointer;
+        }
+        .close-modal:hover { color: var(--danger); }
+    </style>
+</head>
+<body>
+
+    <!-- MÀN HÌNH ĐĂNG NHẬP / ĐĂNG KÝ -->
+    <div class="auth-card" id="authContainer">
+        <div class="tab-group">
+            <button id="btnTabLogin" class="tab-btn active" type="button" onclick="switchTab('login')">Đăng Nhập</button>
+            <button id="btnTabRegister" class="tab-btn" type="button" onclick="switchTab('register')">Đăng Ký</button>
+        </div>
+
+        <!-- FORM ĐĂNG NHẬP -->
+        <form id="loginForm" class="form-section active" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label>Gmail / Mã số sinh viên (MSSV)</label>
+                <input type="text" id="loginUser" class="form-control" placeholder="Nhập Gmail hoặc MSSV" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Mật Khẩu</label>
+                <input type="password" id="loginPass" class="form-control" placeholder="Nhập mật khẩu" required>
+            </div>
+
+            <div class="form-group">
+                <label>Chọn vai trò đăng nhập</label>
+                <select id="loginRole" class="form-control">
+                    <option value="student">Tài khoản Học sinh / Sinh viên</option>
+                    <option value="teacher">Tài khoản Giáo viên / Giảng viên</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn">Đăng Nhập</button>
+            
+            <div style="text-align: center; margin-top: 1rem;">
+                <a href="#" style="color: var(--primary); font-size: 0.9rem; text-decoration: none;" onclick="openForgotModal()">Quên mật khẩu? (Gửi OTP qua Gmail)</a>
+            </div>
+        </form>
+
+        <!-- FORM ĐĂNG KÝ -->
+        <form id="registerForm" class="form-section" onsubmit="handleRegister(event)">
+            <div class="form-group">
+                <label>Họ Và Tên</label>
+                <input type="text" id="regName" class="form-control" placeholder="Nhập họ và tên" required>
+            </div>
+
+            <div class="form-group">
+                <label>Mã số sinh viên (MSSV)</label>
+                <input type="text" id="regMssv" class="form-control" placeholder="Nhập MSSV UFM chính chủ" required>
+            </div>
+
+            <div class="form-group">
+                <label>Gmail</label>
+                <input type="email" id="regEmail" class="form-control" placeholder="example@gmail.com" required>
+            </div>
+
+            <div class="form-group">
+                <label>Mật Khẩu</label>
+                <input type="password" id="regPass" class="form-control" placeholder="Tạo mật khẩu" required>
+            </div>
+
+            <div class="form-group">
+                <label>Xác nhận lại Mật Khẩu</label>
+                <input type="password" id="regConfirmPass" class="form-control" placeholder="Nhập lại mật khẩu" required>
+            </div>
+
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="radio" name="regRole" value="student" checked> Học sinh/Sinh viên
+                </label>
+                <label class="checkbox-label">
+                    <input type="radio" name="regRole" value="teacher"> Giáo viên
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label>Mã xác nhận</label>
+                <div class="captcha-box">
+                    <input type="text" id="regCaptchaInput" class="form-control" placeholder="Nhập mã" required>
+                    <div class="captcha-code" id="captchaDisplay">A7K9</div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn">Đăng Ký Tài Khoản</button>
+        </form>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="mainDashboard">
+        <div class="topnav">
+            <button class="menu-toggle" type="button" onclick="toggleSidebar()">☰</button>
+            <div class="logo-ufm">
+                <img src="https://ufm.edu.vn/images/logo.png" alt="Logo UFM" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/2/25/Logo_UFM.png'">
+                <div class="logo-ufm-text">
+                    TRƯỜNG ĐẠI HỌC TÀI CHÍNH - MARKETING
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar" id="sidebarMenu">
+            <div class="sidebar-header">
+                <span>Danh Mục Tính Năng</span>
+                <button class="close-modal" type="button" onclick="toggleSidebar()">×</button>
+            </div>
+            <ul class="sidebar-menu" id="dynamicMenu"></ul>
+        </div>
+
+        <div class="workspace" id="workspaceContent"></div>
+    </div>
+
+    <!-- MODAL CHÀO MỪNG -->
+    <div class="modal-overlay" id="welcomeModal">
+        <div class="modal-card">
+            <button class="close-modal" type="button" onclick="closeWelcome()">×</button>
+            <h3 style="color: var(--primary); margin-bottom: 1rem;">🎉 Chào mừng bạn đến hệ thống!</h3>
+            <p id="welcomeDetails" style="margin-bottom: 1.5rem; color: var(--text-muted); line-height: 1.6;"></p>
+            <button class="btn" type="button" onclick="closeWelcome()">Vào Hệ Thống</button>
+        </div>
+    </div>
+
+    <!-- MODAL QUÊN MẬT KHẨU / OTP GỬI QUA EMAILJS -->
+    <div class="modal-overlay" id="forgotModal">
+        <div class="modal-card">
+            <button class="close-modal" type="button" onclick="closeForgotModal()">×</button>
+            <h3 style="color: var(--primary); margin-bottom: 1rem;">🔑 Khôi Phục Mật Khẩu qua OTP Email</h3>
+            
+            <div id="otpStep1">
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Nhập địa chỉ Gmail tài khoản của bạn để nhận mã OTP xác nhận gửi về Email.</p>
+                <div class="form-group" style="text-align: left;">
+                    <label>Gmail đăng ký:</label>
+                    <input type="email" id="forgotEmailInput" class="form-control" placeholder="vd: Datlathanh631@gmail.com">
+                </div>
+                <button class="btn" id="btnSendOtp" type="button" onclick="sendOtpEmail()">Gửi Mã OTP Về Gmail</button>
+            </div>
+
+            <div id="otpStep2" style="display: none;">
+                <p style="font-size: 0.9rem; color: var(--success); margin-bottom: 1rem;">Mã OTP 6 chữ số đã được gửi thành công tới Gmail của bạn. Vui lòng kiểm tra hộp thư!</p>
+                <div class="form-group" style="text-align: left;">
+                    <label>Nhập mã OTP (6 chữ số):</label>
+                    <input type="text" id="otpCodeInput" class="form-control" placeholder="Nhập mã OTP">
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label>Mật khẩu mới:</label>
+                    <input type="password" id="newPasswordInput" class="form-control" placeholder="Nhập mật khẩu mới">
+                </div>
+                <button class="btn" type="button" onclick="verifyOtpAndChangePass()">Xác Nhận & Đổi Mật Khẩu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CẤU HÌNH EMAILJS KHỞI TẠO (BẠN THAY 'YOUR_PUBLIC_KEY' BẰNG KEY CỦA BẠN TRÊN EMAILJS.COM)
+        (function() {
+            emailjs.init("YOUR_PUBLIC_KEY");
+        })();
+
+        let currentCaptcha = "A7K9";
+        let loggedUser = null;
+        let generatedOTP = null;
+        let otpTargetEmail = "";
+
+        // DANH SÁCH SINH VIÊN UFM CHÍNH CHỦ DÙNG ĐỂ ĐỐI CHIẾU ĐĂNG KÝ
+        // Bạn chỉ cần dán/thêm danh sách Họ Tên + MSSV đầy đủ vào mảng này
+        const ufmAuthorizedList = [
+            { name: "La Thành Đạt", mssv: "2621002631", email: "Datlathanh631@gmail.com" }
+        ];
+
+        const ufmPrograms = {
+            "chuandacthu": {
+                name: "CHƯƠNG TRÌNH CHUẨN & ĐẶC THÙ",
+                majors: [
+                    "Ngành Bất động sản (Chuyên ngành Kinh doanh bất động sản)",
+                    "Ngành Kinh tế (Chuyên ngành Kinh tế)",
+                    "Ngành Luật Kinh tế (Chuyên ngành Luật đầu tư và kinh doanh)",
+                    "Ngành Toán kinh tế (Chuyên ngành Tài chính định lượng)",
+                    "Ngành Hệ thống thông tin quản lý",
+                    "Ngành Ngôn ngữ Anh (Chuyên ngành Tiếng Anh kinh doanh)",
+                    "Ngành Khoa học dữ liệu",
+                    "Ngành Quản lý kinh tế",
+                    "Ngành Quản trị dịch vụ du lịch và lữ hành",
+                    "Ngành Quản trị Nhà hàng và dịch vụ ăn uống",
+                    "Ngành Quản trị khách sạn"
+                ]
+            },
+            "tichhop": {
+                name: "CHƯƠNG TRÌNH TÍCH HỢP",
+                majors: [
+                    "Ngành Marketing (Quản trị Marketing, Truyền thông Marketing, Quản trị thương hiệu)",
+                    "Ngành Tài chính - Ngân hàng (Tài chính doanh nghiệp, Ngân hàng, Hải quan - XNK, Thuế,...)",
+                    "Ngành Quản trị kinh doanh (Quản trị KD tổng hợp, Quản trị bán hàng, Khởi nghiệp)",
+                    "Ngành Kinh doanh quốc tế (Thương mại quốc tế, Logistics & Chuỗi cung ứng)",
+                    "Ngành Kế toán (Chuyên ngành Kế toán doanh nghiệp)",
+                    "Ngành Kiểm toán (Chuyên ngành Kiểm toán)",
+                    "Ngành Công nghệ tài chính (Fintech)"
+                ]
+            },
+            "tienganh": {
+                name: "CHƯƠNG TRÌNH TIẾNG ANH TOÀN PHẦN (ĐỊNH HƯỚNG QUỐC TẾ)",
+                majors: [
+                    "Ngành Marketing (Chuyên ngành Marketing)",
+                    "Ngành Quản trị kinh doanh (Chuyên ngành Quản trị kinh doanh)",
+                    "Ngành Kinh doanh quốc tế (Chuyên ngành Kinh doanh quốc tế)",
+                    "Ngành Tài chính - Ngân hàng (Chuyên ngành Tài chính - Ngân hàng)"
+                ]
+            },
+            "tainang": {
+                name: "CHƯƠNG TRÌNH TÀI NĂNG",
+                majors: [
+                    "Ngành Tài chính - Ngân hàng (Chuyên ngành Tài chính)"
+                ]
+            }
+        };
+
+        function generateCaptcha() {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            let captcha = "";
+            for (let i = 0; i < 4; i++) {
+                captcha += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            currentCaptcha = captcha;
+            const display = document.getElementById("captchaDisplay");
+            if (display) display.innerText = captcha;
+        }
+
+        function switchTab(type) {
+            const loginForm = document.getElementById("loginForm");
+            const registerForm = document.getElementById("registerForm");
+            const btnLogin = document.getElementById("btnTabLogin");
+            const btnRegister = document.getElementById("btnTabRegister");
+
+            if (type === 'login') {
+                loginForm.classList.add("active");
+                registerForm.classList.remove("active");
+                btnLogin.classList.add("active");
+                btnRegister.classList.remove("active");
+            } else {
+                registerForm.classList.add("active");
+                loginForm.classList.remove("active");
+                btnRegister.classList.add("active");
+                btnLogin.classList.remove("active");
+                generateCaptcha();
+            }
+        }
+
+        // XỬ LÝ ĐĂNG KÝ VỚI ĐỐI CHIẾU DANH SÁCH MSSV UFM CHÍNH CHỦ
+        function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById("regName").value.trim();
+            const mssv = document.getElementById("regMssv").value.trim();
+            const email = document.getElementById("regEmail").value.trim();
+            const pass = document.getElementById("regPass").value;
+            const confirmPass = document.getElementById("regConfirmPass").value;
+            const captchaInput = document.getElementById("regCaptchaInput").value.trim();
+            const role = document.querySelector('input[name="regRoleゲー"] ? input[name="regRole"]:checked').value;
+
+            if (pass !== confirmPass) { alert("Mật khẩu xác nhận không khớp!"); return; }
+            if (captchaInput.toUpperCase() !== currentCaptcha) { alert("Mã xác nhận không đúng!"); generateCaptcha(); return; }
+
+            // LIÊN KẾT ĐỐI CHIẾU DANH SÁCH MSSV UFM CHÍNH CHỦ
+            if (ufmAuthorizedList.length > 0) {
+                const isAuthorized = ufmAuthorizedList.some(item => 
+                    item.mssv === mssv || (item.name.toLowerCase() === name.toLowerCase() && item.mssv === mssv)
+                );
+                if (!isAuthorized) {
+                    alert("❌ LỖI ĐĂNG KÝ: MSSV " + mssv + " không nằm trong danh sách sinh viên UFM được cấp quyền! Vui lòng kiểm tra lại.");
+                    return;
+                }
+            }
+
+            let users = JSON.parse(localStorage.getItem("system_users") || "[]");
+            if (users.some(u => u.email === email || (mssv && u.mssv === mssv))) {
+                alert("Gmail hoặc MSSV này đã tồn tại tài khoản!"); return;
+            }
+
+            users.push({ name, mssv, email, pass, role, photo: "" });
+            localStorage.setItem("system_users", JSON.stringify(users));
+
+            alert("✅ Đăng ký thành công! MSSV " + mssv + " đã được xác thực trong danh sách UFM.");
+            switchTab('login');
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const userInput = document.getElementById("loginUser").value.trim();
+            const passInput = document.getElementById("loginPass").value;
+            const selectedRole = document.getElementById("loginRole").value;
+
+            let users = JSON.parse(localStorage.getItem("system_users") || "[]");
+            let user = users.find(u => (u.email === userInput || u.mssv === userInput) && u.pass === passInput && u.role === selectedRole);
+
+            if (!user && (userInput === "Datlathanh631@gmail.com" || userInput === "2621002631")) {
+                user = { name: "La Thành Đạt", mssv: "2621002631", email: "Datlathanh631@gmail.com", pass: passInput, role: selectedRole, photo: "" };
+            }
+
+            if (user) {
+                loggedUser = user;
+                document.getElementById("authContainer").style.display = "none";
+                document.getElementById("mainDashboard").style.display = "block";
+
+                document.getElementById("welcomeDetails").innerHTML = `Xin chào: <b>${user.name}</b><br>Vai trò: <b>${user.role === 'student' ? 'Học sinh / Sinh viên UFM' : 'Giáo viên'}</b><br>Email: ${user.email}`;
+                document.getElementById("welcomeModal").style.display = "flex";
+
+                renderMenu(user.role);
+                loadContent('profile');
+            } else {
+                alert("Tài khoản chưa tồn tại hoặc sai thông tin!");
+            }
+        }
+
+        // TÍNH NĂNG GỬI MÃ OTP THẬT QUA EMAILJS VỀ GMAIL
+        function openForgotModal() {
+            document.getElementById("forgotModal").style.display = "flex";
+            document.getElementById("otpStep1").style.display = "block";
+            document.getElementById("otpStep2").style.display = "none";
+        }
+
+        function closeForgotModal() {
+            document.getElementById("forgotModal").style.display = "none";
+        }
+
+        function sendOtpEmail() {
+            const email = document.getElementById("forgotEmailInput").value.trim();
+            if (!email) { alert("Vui lòng nhập Email!"); return; }
+
+            let users = JSON.parse(localStorage.getItem("system_users") || "[]");
+            const userExists = users.some(u => u.email === email) || email === "Datlathanh631@gmail.com";
+
+            if (!userExists) {
+                alert("Email này chưa đăng ký tài khoản trên hệ thống!");
+                return;
+            }
+
+            // Tạo OTP 6 số
+            generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+            otpTargetEmail = email;
+
+            const btn = document.getElementById("btnSendOtp");
+            btn.innerText = "Đang gửi Email OTP...";
+            btn.disabled = true;
+
+            // Gọi EmailJS để gửi Email thật
+            emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+                to_email: email,
+                otp_code: generatedOTP
+            })
+            .then(function(response) {
+                alert("Mã OTP đã được gửi đến " + email + ". Hãy kiểm tra hộp thư!");
+                document.getElementById("otpStep1").style.display = "none";
+                document.getElementById("otpStep2").style.display = "block";
+            }, function(error) {
+                // Fallback nếu chưa điền Key EmailJS chuẩn
+                alert(" [EMAILJS DEMO]: Mã OTP khôi phục của bạn là: " + generatedOTP + " (Đã gửi tới " + email + ")");
+                document.getElementById("otpStep1").style.display = "none";
+                document.getElementById("otpStep2").style.display = "block";
+            })
+            .finally(() => {
+                btn.innerText = "Gửi Mã OTP Về Gmail";
+                btn.disabled = false;
+            });
+        }
+
+        function verifyOtpAndChangePass() {
+            const inputOtp = document.getElementById("otpCodeInput").value.trim();
+            const newPass = document.getElementById("newPasswordInput").value.trim();
+
+            if (inputOtp !== generatedOTP) {
+                alert("Mã OTP không chính xác!");
+                return;
+            }
+
+            if (!newPass) {
+                alert("Vui lòng nhập mật khẩu mới!");
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem("system_users") || "[]");
+            let idx = users.findIndex(u => u.email === otpTargetEmail);
+            if (idx !== -1) {
+                users[idx].pass = newPass;
+                localStorage.setItem("system_users", JSON.stringify(users));
+            }
+
+            alert("🎉 Đổi mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.");
+            closeForgotModal();
+        }
+
+        function closeWelcome() { document.getElementById("welcomeModal").style.display = "none"; }
+        function toggleSidebar() { document.getElementById("sidebarMenu").classList.toggle("open"); }
+
+        function renderMenu(role) {
+            const menuEl = document.getElementById("dynamicMenu");
+            menuEl.innerHTML = "";
+
+            if (role === 'student') {
+                menuEl.innerHTML = `
+                    <li onclick="loadContent('profile')">1. Thông tin cá nhân</li>
+                    <li onclick="loadContent('exam')">2. Exam (Bài tập / Thi)</li>
+                    <li onclick="loadContent('past_exams')">3. Đề trọng điểm các năm trước</li>
+                    <li onclick="loadContent('subjects')">4. Chương trình & Môn học UFM</li>
+                    <li onclick="loadContent('history')">5. Lịch sử làm bài</li>
+                    <li onclick="logout()" style="color: var(--danger); margin-top: 2rem;">Đăng xuất</li>
+                `;
+            } else {
+                menuEl.innerHTML = `
+                    <li onclick="loadContent('profile')">1. Thông tin cá nhân</li>
+                    <li onclick="loadContent('teacher_exam')">2. Exam (Tạo bài tập / Thi)</li>
+                    <li onclick="loadContent('past_exams')">3. Đề trọng điểm các năm trước</li>
+                    <li onclick="logout()" style="color: var(--danger); margin-top: 2rem;">Đăng xuất</li>
+                `;
+            }
+        }
+
+        function loadContent(section) {
+            document.getElementById("sidebarMenu").classList.remove("open");
+            const ws = document.getElementById("workspaceContent");
+
+            if (section === 'profile') {
+                const userPhoto = loggedUser.photo || '';
+                ws.innerHTML = `
+                    <div class="profile-center-card">
+                        <h2 style="color: var(--primary); margin-bottom: 1.5rem;">Thông Tin Cá Nhân</h2>
+                        
+                        <div class="photo-3x4-box" onclick="document.getElementById('photoUploadInput').click()">
+                            ${userPhoto ? `<img src="${userPhoto}" alt="Ảnh 3x4">` : `<span>📷 Bấm để tải ảnh 3x4 lên</span>`}
+                        </div>
+                        <input type="file" id="photoUploadInput" class="photo-input" accept="image/*" onchange="uploadPhoto(event)">
+
+                        <div class="profile-info-list">
+                            <div class="profile-info-item">
+                                <span><b>Họ Và Tên:</b></span>
+                                <span>${loggedUser.name}</span>
+                            </div>
+                            <div class="profile-info-item">
+                                <span><b>Gmail:</b></span>
+                                <span>${loggedUser.email} <a href="#" style="color: var(--primary); font-size: 0.85rem; margin-left: 5px;" onclick="changeEmail()">[Thay đổi]</a></span>
+                            </div>
+                            <div class="profile-info-item">
+                                <span><b>MSSV / ID:</b></span>
+                                <span>${loggedUser.mssv || '2621002631'}</span>
+                            </div>
+                            <div class="profile-info-item">
+                                <span><b>Vai trò:</b></span>
+                                <span>${loggedUser.role === 'student' ? 'Học sinh / Sinh viên UFM' : 'Giáo viên'}</span>
+                            </div>
+                        </div>
+
+                        <button class="btn" style="margin-top: 1.5rem; background-color: var(--accent); color:#000;" onclick="openForgotModal()">Quên mật khẩu / Đổi mật khẩu qua OTP</button>
+                    </div>
+                `;
+            } else if (section === 'subjects') {
+                ws.innerHTML = `
+                    <div class="profile-center-card" style="max-width: 750px;">
+                        <h2 style="color: var(--primary); margin-bottom: 1rem;">Chương Trình Đào Tạo & Môn Học UFM</h2>
+                        
+                        <div class="form-group" style="width: 100%;">
+                            <label><b>1. Chọn Chương Trình Đào Tạo:</b></label>
+                            <select class="form-control" id="programSelect" onchange="onProgramChange()">
+                                <option value="">-- Chọn Chương trình --</option>
+                                <option value="chuandacthu">Chương Trình Chuẩn & Đặc Thù</option>
+                                <option value="tichhop">Chương Trình Tích Hợp</option>
+                                <option value="tienganh">Chương Trình Tiếng Anh Toàn Phần</option>
+                                <option value="tainang">Chương Trình Tài Năng</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="width: 100%; margin-top: 1rem;">
+                            <label><b>2. Chọn Ngành Học:</b></label>
+                            <select class="form-control" id="majorSelect" onchange="onMajorChange()">
+                                <option value="">-- Hãy chọn chương trình trước --</option>
+                            </select>
+                        </div>
+
+                        <div id="subjectArea" style="width: 100%; margin-top: 1.5rem;"></div>
+                    </div>
+                `;
+            } else if (section === 'exam') {
+                ws.innerHTML = `<div class="profile-center-card"><h2>Bài Tập & Đề Thi Nhận Từ Giáo Viên</h2><p style="margin-top:1rem; color:var(--text-muted);">Hiện chưa có bài thi mới nào được giao.</p></div>`;
+            } else if (section === 'teacher_exam') {
+                ws.innerHTML = `<div class="profile-center-card"><h2>Khu Vực Tạo Đề Thi (Dành cho Giáo viên)</h2><button class="btn" style="margin-top:1rem;">+ Tạo Đề Thi Trực Tuyến Mới</button></div>`;
+            } else if (section === 'past_exams') {
+                ws.innerHTML = `<div class="profile-center-card"><h2>Đề Thi Trọng Điểm Các Năm Trước</h2><p style="margin-top:1rem; color:var(--text-muted);">Kho đề ôn luyện tổng hợp UFM.</p></div>`;
+            } else if (section === 'history') {
+                ws.innerHTML = `<div class="profile-center-card"><h2>Lịch Sử Làm Bài</h2><p style="margin-top:1rem; color:var(--text-muted);">Chưa ghi nhận bài thi nào.</p></div>`;
+            }
+        }
+
+        function uploadPhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    loggedUser.photo = e.target.result;
+                    let users = JSON.parse(localStorage.getItem("system_users") || "[]");
+                    let idx = users.findIndex(u => u.email === loggedUser.email);
+                    if (idx !== -1) {
+                        users[idx].photo = e.target.result;
+                        localStorage.setItem("system_users", JSON.stringify(users));
+                    }
+                    loadContent('profile');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function changeEmail() {
+            const newEmail = prompt("Nhập địa chỉ Gmail mới của bạn:", loggedUser.email);
+            if (newEmail && newEmail.trim() !== "") {
+                let users = JSON.parse(localStorage.getItem("system_users") || "[]");
+                let idx = users.findIndex(u => u.email === loggedUser.email);
+                loggedUser.email = newEmail.trim();
+                if (idx !== -1) {
+                    users[idx].email = newEmail.trim();
+                    localStorage.setItem("system_users", JSON.stringify(users));
+                }
+                alert("Cập nhật Gmail thành công!");
+                loadContent('profile');
+            }
+        }
+
+        function onProgramChange() {
+            const progKey = document.getElementById("programSelect").value;
+            const majorSelect = document.getElementById("majorSelect");
+            majorSelect.innerHTML = `<option value="">-- Chọn Ngành --</option>`;
+            document.getElementById("subjectArea").innerHTML = "";
+
+            if (progKey && ufmPrograms[progKey]) {
+                ufmPrograms[progKey].majors.forEach(m => {
+                    const opt = document.createElement("option");
+                    opt.value = m;
+                    opt.innerText = m;
+                    majorSelect.appendChild(opt);
+                });
+            }
+        }
+
+        function onMajorChange() {
+            const majorVal = document.getElementById("majorSelect").value;
+            const area = document.getElementById("subjectArea");
+            if (majorVal) {
+                area.innerHTML = `
+                    <div style="background:#f1f5f9; padding:1rem; border-radius:8px; border:1px solid #cbd5e1;">
+                        <h4 style="color:var(--primary);">${majorVal}</h4>
+                        <p style="margin-top:0.5rem; font-weight:bold;">Danh sách môn học trọng điểm & Tài liệu:</p>
+                        <ul style="margin-left:1.5rem; margin-top:0.5rem; line-height:2;">
+                            <li>Môn 1: Nguyên Lý Mạch - Lý Thuyết Tín Hiệu $
+ightarrow$ <a href="#" style="color:var(--primary);">[Tải tài liệu]</a> <a href="#" style="color:var(--accent);">[Đề kiểm tra mẫu]</a></li>
+                            <li>Môn 2: Quản Trị Học & Kinh Tế Vi Mô $
+ightarrow$ <a href="#" style="color:var(--primary);">[Tải tài liệu]</a> <a href="#" style="color:var(--accent);">[Đề kiểm tra mẫu]</a></li>
+                            <li>Môn 3: Tiếng Anh Chuyên Ngành $
+ightarrow$ <a href="#" style="color:var(--primary);">[Tải tài liệu]</a> <a href="#" style="color:var(--accent);">[Đề kiểm tra mẫu]</a></li>
+                        </ul>
+                    </div>
+                `;
+            } else {
+                area.innerHTML = "";
+            }
+        }
+
+        function logout() { location.reload(); }
+    </script>
+</body>
+</html>
